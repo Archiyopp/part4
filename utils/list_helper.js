@@ -15,18 +15,19 @@ const favoriteBlog = (blogs) => {
 
 const mostBlogs = (blogs) => {
   if (blogs.length === 0) return null;
-  const object = {};
+  const authorObjects = {};
   let maxBlogsAuthor = '';
   let maxBlogs = 0;
   blogs.forEach((blog) => {
-    if (object[blog.author]) {
-      object[blog.author].blogs++;
-      if (object[blog.author].blogs > maxBlogs) {
+    const authorInObject = authorObjects[blog.author];
+    if (authorInObject) {
+      authorInObject.blogs++;
+      if (authorInObject.blogs > maxBlogs) {
         maxBlogs++;
         maxBlogsAuthor = blog.author;
       }
     } else {
-      object[blog.author] = { author: blog.author, blogs: 1 };
+      authorObjects[blog.author] = { author: blog.author, blogs: 1 };
       if (1 > maxBlogs) {
         maxBlogs++;
         if (!maxBlogsAuthor) {
@@ -35,7 +36,7 @@ const mostBlogs = (blogs) => {
       }
     }
   });
-  return object[maxBlogsAuthor];
+  return authorObjects[maxBlogsAuthor];
 };
 
 const mostLikes = (blogs) => {};
