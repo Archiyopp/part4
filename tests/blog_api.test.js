@@ -60,10 +60,6 @@ test('a specific blog is within the returned blogs', async () => {
   expect(contents).toContain('Canonical string reduction');
 });
 
-afterAll(() => {
-  mongoose.connection.close();
-});
-
 test('blog without title and url is not added', async () => {
   const newBlog = {
     author: 'true',
@@ -86,4 +82,41 @@ test('blog without likes is added with 0 likes', async () => {
 
   const blogsAtEnd = await helper.blogsInDb();
   expect(blogsAtEnd).toHaveLength(initialBlogs.length + 1);
+});
+
+test('blog delete works with status 204', async () => {
+  const initialBlogs = await helper.blogsInDb();
+  const blogToDelete = initialBlogs[0];
+
+  await api.delete(`/api/blogs/${blogToDelete.id}`).expect(204);
+
+  const finalBlogs = await helper.blogsInDb();
+
+  expect(finalBlogs).toHaveLength(initialBlogs.length - 1);
+
+  const contents = finalBlogs.map((blog) => blog.title);
+
+  expect(contents).not.toContain(blogToDelete.title);
+});
+
+test('blog update works with status 200', async () => {
+  const initialBlogs = await helper.blogsInDb();
+  const blogToUpdate = initialBlogs[1];
+  const newBlog = {
+    title: blogToUpdate.title,
+    author: blogToUpdate.author,
+    url: blogToUpdate.url,
+    likes: blogToUpdate.likes + 1,
+  };
+
+  const response = await api
+    .put(`/api/blogs/${blogToUpdate.id}`)
+    .send(newBlog)
+    .expect(200);
+
+  expect(response.body.likes).toBe(blogToUpdate.likes + 1);
+});
+
+afterAll(() => {
+  mongoose.connection.close();
 });
