@@ -31,7 +31,7 @@ beforeEach(async () => {
     let blogObject = new Blog(blog);
     await blogObject.save();
   }
-});
+}, 10000);
 
 test('blogs are returned as json', async () => {
   await api
@@ -180,6 +180,71 @@ test('blog update works with status 200', async () => {
     .expect(200);
 
   expect(response.body.likes).toBe(blogToUpdate.likes + 1);
+});
+describe('when there is initially one user in db', () => {
+  test('creation of valid user succeeds', async () => {
+    const usersAtStart = await helper.usersInDb();
+
+    const newUser = {
+      username: 'archiyop',
+      name: 'Cristian F',
+      password: 'secreto',
+    };
+
+    await api
+      .post('/api/users')
+      .send(newUser)
+      .expect(201)
+      .expect('Content-Type', /application\/json/);
+
+    const usersAtEnd = await helper.usersInDb();
+    expect(usersAtEnd).toHaveLength(usersAtStart.length + 1);
+
+    const usernames = usersAtEnd.map((u) => u.username);
+    expect(usernames).toContain(newUser.username);
+  });
+
+  test('creation of invalid user fails', async () => {
+    const usersAtStart = await helper.usersInDb();
+
+    const newUser = {
+      name: 'Superuser',
+      password: 'salainen',
+    };
+
+    const result = await api
+      .post('/api/users')
+      .send(newUser)
+      .expect(400)
+      .expect('Content-Type', /application\/json/);
+
+    expect(result.body.error).toContain('invalid username');
+
+    const usersAtEnd = await helper.usersInDb();
+    expect(usersAtEnd).toHaveLength(usersAtStart.length);
+  });
+
+  test('creation fails with proper statuscode and message if username already taken', async () => {
+    const usersAtStart = await helper.usersInDb();
+
+    const newUser = {
+      username: 'root',
+      name: 'Superuser',
+      password: 'salainen',
+    };
+
+    const result = await api
+      .post('/api/users')
+      .send(newUser)
+      .expect(400);
+
+    expect(result.body.error).toContain(
+      'expected `username` to be unique'
+    );
+
+    const usersAtEnd = await helper.usersInDb();
+    expect(usersAtEnd).toHaveLength(usersAtStart.length);
+  });
 });
 
 afterAll(() => {
