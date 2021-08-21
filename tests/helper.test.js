@@ -81,3 +81,26 @@ describe('most blogs a single author has', () => {
     });
   });
 });
+
+describe('most likes a single author has', () => {
+  test('when there are non, returns null', () => {
+    const result = listHelper.mostLikes([]);
+    expect(result).toBe(null);
+  });
+
+  test('when there is one blog, returns the author and the likes', () => {
+    const result = listHelper.mostLikes(listWithOneBlog);
+    expect(result).toEqual({
+      author: 'Cristian A. Fernandez',
+      likes: 20,
+    });
+  });
+
+  test('when there is a bloglist, returns the author with most likes in total', () => {
+    const result = listHelper.mostLikes(blogs);
+    expect(result).toEqual({
+      author: 'Edsger W. Dijkstra',
+      likes: 17,
+    });
+  });
+});
