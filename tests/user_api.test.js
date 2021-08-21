@@ -14,8 +14,13 @@ describe('when there is initially one user in db', () => {
       username: 'root',
       passwordHash,
     });
-
     await user.save();
+    const passwordH = await bcrypt.hash('testing', 10);
+    const user2 = new User({
+      username: 'archi',
+      passwordHash: passwordH,
+    });
+    await user2.save();
   });
 
   test('creation of valid user succeeds', async () => {
@@ -72,7 +77,11 @@ describe('when there is initially one user in db', () => {
     const result = await api
       .post('/api/users')
       .send(newUser)
-      .expect(500);
+      .expect(400);
+
+    expect(result.body.error).toContain(
+      'expected `username` to be unique'
+    );
 
     const usersAtEnd = await helper.usersInDb();
     expect(usersAtEnd).toHaveLength(usersAtStart.length);

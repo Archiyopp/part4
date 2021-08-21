@@ -1,16 +1,33 @@
 const mongoose = require('mongoose');
 const supertest = require('supertest');
+const bcrypt = require('bcryptjs');
 const app = require('../app');
 const Blog = require('../models/blog');
 const api = supertest(app);
 const helper = require('./test_helper');
+const User = require('../models/user');
 
 const initialBlogs = helper.initialBlogs;
 const oneBlog = helper.listWithOneBlog[0];
 
 beforeEach(async () => {
+  await User.deleteMany({});
   await Blog.deleteMany({});
+  const passwordHash = await bcrypt.hash('secret', 10);
+  const user = new User({
+    username: 'root',
+    passwordHash,
+  });
+  await user.save();
+  const passwordH = await bcrypt.hash('testing', 10);
+  const user2 = new User({
+    username: 'archi',
+    passwordHash: passwordH,
+  });
+  await user2.save();
+  const userBlogs = await User.findOne({ username: 'archi' });
   for (const blog of initialBlogs) {
+    blog.user = userBlogs._id;
     let blogObject = new Blog(blog);
     await blogObject.save();
   }
@@ -41,8 +58,17 @@ test('the first blog is called React patterns', async () => {
 });
 
 test('a valid blog can be added ', async () => {
+  let token = '';
+  await api
+    .post('/api/login')
+    .send({ username: 'archi', password: 'testing' })
+    .then((response) => {
+      token = response.body.token;
+    });
+
   await api
     .post('/api/blogs')
+    .set('Authorization', `bearer ${token}`)
     .send(oneBlog)
     .expect(201)
     .expect('Content-Type', /application\/json/);
@@ -51,7 +77,7 @@ test('a valid blog can be added ', async () => {
   expect(blogsAtEnd).toHaveLength(initialBlogs.length + 1);
   const contents = blogsAtEnd.map((n) => n.title);
   expect(contents).toContain('Async/await is pretty Pog');
-});
+}, 10000);
 
 test('a specific blog is within the returned blogs', async () => {
   const response = await api.get('/api/blogs');
@@ -61,34 +87,73 @@ test('a specific blog is within the returned blogs', async () => {
 });
 
 test('blog without title and url is not added', async () => {
+  let token = '';
+  await api
+    .post('/api/login')
+    .send({ username: 'archi', password: 'testing' })
+    .then((response) => {
+      token = response.body.token;
+    });
   const newBlog = {
     author: 'true',
   };
 
-  await api.post('/api/blogs').send(newBlog).expect(400);
+  await api
+    .post('/api/blogs')
+    .set('Authorization', `bearer ${token}`)
+    .send(newBlog)
+    .expect(400);
 
   const blogsAtEnd = await helper.blogsInDb();
   expect(blogsAtEnd).toHaveLength(initialBlogs.length);
 });
 
 test('blog without likes is added with 0 likes', async () => {
+  let token = '';
+  await api
+    .post('/api/login')
+    .send({ username: 'archi', password: 'testing' })
+    .then((response) => {
+      token = response.body.token;
+    });
   const newBlog = {
     title: 'Test',
     author: 'true',
     url: 'hello',
   };
 
-  await api.post('/api/blogs').send(newBlog).expect(201);
+  await api
+    .post('/api/blogs')
+    .set('Authorization', `bearer ${token}`)
+    .send(newBlog)
+    .expect(201);
 
   const blogsAtEnd = await helper.blogsInDb();
   expect(blogsAtEnd).toHaveLength(initialBlogs.length + 1);
 });
 
+test('blog post fails without authorization', async () => {
+  await api.post('/api/blogs').send(oneBlog).expect(401);
+
+  const blogsAtEnd = await helper.blogsInDb();
+  expect(blogsAtEnd).toHaveLength(initialBlogs.length);
+});
+
 test('blog delete works with status 204', async () => {
+  let token = '';
+  await api
+    .post('/api/login')
+    .send({ username: 'archi', password: 'testing' })
+    .then((response) => {
+      token = response.body.token;
+    });
   const initialBlogs = await helper.blogsInDb();
   const blogToDelete = initialBlogs[0];
 
-  await api.delete(`/api/blogs/${blogToDelete.id}`).expect(204);
+  await api
+    .delete(`/api/blogs/${blogToDelete.id}`)
+    .set('Authorization', `bearer ${token}`)
+    .expect(204);
 
   const finalBlogs = await helper.blogsInDb();
 
