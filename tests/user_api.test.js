@@ -60,26 +60,23 @@ describe('when there is initially one user in db', () => {
     expect(usersAtEnd).toHaveLength(usersAtStart.length);
   });
 
-  // test('creation fails with proper statuscode and message if username already taken', async () => {
-  //   const usersAtStart = await helper.usersInDb();
+  test('creation fails with proper statuscode and message if username already taken', async () => {
+    const usersAtStart = await helper.usersInDb();
 
-  //   const newUser = {
-  //     username: 'root',
-  //     name: 'Superuser',
-  //     password: 'salainen',
-  //   };
+    const newUser = {
+      username: 'root',
+      name: 'Superuser',
+      password: 'salainen',
+    };
 
-  //   const result = await api
-  //     .post('/api/users')
-  //     .send(newUser)
-  //     .expect(400)
-  //     .expect('Content-Type', /application\/json/);
+    const result = await api
+      .post('/api/users')
+      .send(newUser)
+      .expect(500);
 
-  //   expect(result.body.error).toContain('invalid username');
-
-  //   const usersAtEnd = await helper.usersInDb();
-  //   expect(usersAtEnd).toHaveLength(usersAtStart.length);
-  // });
+    const usersAtEnd = await helper.usersInDb();
+    expect(usersAtEnd).toHaveLength(usersAtStart.length);
+  });
 });
 
 afterAll(() => {

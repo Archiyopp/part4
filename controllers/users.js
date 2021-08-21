@@ -3,7 +3,11 @@ const usersRouter = require('express').Router();
 const User = require('../models/user');
 
 usersRouter.get('/', async (req, res) => {
-  const users = await User.find({});
+  const users = await User.find({}).populate('blogs', {
+    url: 1,
+    title: 1,
+    author: 1,
+  });
   res.json(users);
 });
 
@@ -14,7 +18,7 @@ usersRouter.post('/', async (request, response, next) => {
       error: 'invalid password',
     });
   }
-  if (!body.username) {
+  if (!body.username || body.password.length < 4) {
     response.status(400).json({
       error: 'invalid username',
     });
@@ -28,8 +32,12 @@ usersRouter.post('/', async (request, response, next) => {
     name: body.name || '',
     passwordHash,
   });
-  const savedUser = await user.save();
-  response.status(201).json(savedUser);
+  try {
+    const savedUser = await user.save();
+    response.status(201).json(savedUser);
+  } catch (e) {
+    next(e);
+  }
 });
 
 module.exports = usersRouter;
